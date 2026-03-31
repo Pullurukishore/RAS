@@ -110,7 +110,7 @@ const Sidebar = () => {
             className="hidden lg:flex flex-col"
           >
             <span className="text-lg font-bold tracking-tight text-white leading-none">
-              Naturals
+              RAS
             </span>
             <span className="text-[10px] font-medium text-cyan-400/80 uppercase tracking-[0.2em] mt-1">
               Premium Salon

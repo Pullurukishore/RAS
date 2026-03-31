@@ -419,7 +419,7 @@ export default function CustomerDetailPage() {
 
                                     <div className="relative flex justify-between items-start">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-[0.3em]">Naturals Lounge</p>
+                                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-[0.3em]">RAS Lounge</p>
                                             <h2 className="text-xl font-bold text-white tracking-tight">Privilege Member</h2>
                                         </div>
                                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
@@ -429,7 +429,7 @@ export default function CustomerDetailPage() {
 
                                     <div className="relative space-y-4">
                                         <p className="text-2xl font-mono text-white tracking-[0.15em] drop-shadow-md">
-                                            {customer.membershipId || 'NAT-M-0000'}
+                                            {customer.membershipId || 'RAS-M-0000'}
                                         </p>
                                         <div className="flex justify-between items-end">
                                             <div>

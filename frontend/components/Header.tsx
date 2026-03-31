@@ -104,7 +104,7 @@ const Header = () => {
   };
 
   const meta = pageMeta[pathname] || {
-    title: "Naturals",
+    title: "RAS",
     subtitle: "Salon Management System",
     icon: "💈",
   };

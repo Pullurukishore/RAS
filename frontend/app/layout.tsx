@@ -14,7 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Naturals Salon Management",
+  title: "RAS Salon Management",
   description: "Advanced Salon ERP and POS System",
 };
 

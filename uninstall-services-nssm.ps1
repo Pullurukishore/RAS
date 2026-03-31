@@ -1,8 +1,8 @@
-# Naturals - NSSM Service Uninstall Script
+# RAS - NSSM Service Uninstall Script
 # Run this script as Administrator
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Naturals - Service Uninstall" -ForegroundColor Cyan
+Write-Host "RAS - Service Uninstall" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -15,7 +15,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-$projectRoot = "c:\Naturals"
+$projectRoot = $PSScriptRoot
 $nssmPath = Join-Path $projectRoot "nssm.exe"
 
 if (-not (Test-Path $nssmPath)) {
@@ -27,17 +27,17 @@ if (-not (Test-Path $nssmPath)) {
 
 # Stop and remove Backend Service
 Write-Host "[1/2] Removing Backend Service..." -ForegroundColor Yellow
-& $nssmPath stop NaturalsBackend 2>$null
+& $nssmPath stop RASBackend 2>$null
 Start-Sleep -Seconds 2
-& $nssmPath remove NaturalsBackend confirm
+& $nssmPath remove RASBackend confirm
 Write-Host "✓ Backend service removed" -ForegroundColor Green
 Write-Host ""
 
 # Stop and remove Frontend Service
 Write-Host "[2/2] Removing Frontend Service..." -ForegroundColor Yellow
-& $nssmPath stop NaturalsFrontend 2>$null
+& $nssmPath stop RASFrontend 2>$null
 Start-Sleep -Seconds 2
-& $nssmPath remove NaturalsFrontend confirm
+& $nssmPath remove RASFrontend confirm
 Write-Host "✓ Frontend service removed" -ForegroundColor Green
 Write-Host ""
 

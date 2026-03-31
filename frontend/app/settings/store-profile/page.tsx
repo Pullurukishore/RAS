@@ -144,7 +144,7 @@ export default function StoreProfilePage() {
                   required
                   value={formData.storeName}
                   onChange={(e) => setFormData({...formData, storeName: e.target.value})}
-                  placeholder="e.g. Naturals Salon"
+                  placeholder="e.g. RAS Salon"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                 />
               </div>

@@ -1,9 +1,9 @@
-# Naturals - NSSM Service Installation Script
+# RAS - NSSM Service Installation Script
 # This script installs both frontend and backend as Windows services using NSSM
 # Run this script as Administrator
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Naturals - NSSM Service Setup" -ForegroundColor Cyan
+Write-Host "RAS - NSSM Service Setup" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -16,7 +16,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-$projectRoot = "c:\Naturals"
+$projectRoot = $PSScriptRoot
 $backendPath = Join-Path $projectRoot "backend"
 $frontendPath = Join-Path $projectRoot "frontend"
 $nssmPath = Join-Path $projectRoot "nssm.exe"
@@ -103,35 +103,35 @@ Write-Host ""
 Write-Host "[4/6] Installing Backend Service..." -ForegroundColor Yellow
 
 # Remove existing service if present
-& $nssmPath stop NaturalsBackend 2>$null
-& $nssmPath remove NaturalsBackend confirm 2>$null
+& $nssmPath stop RASBackend 2>$null
+& $nssmPath remove RASBackend confirm 2>$null
 
 # Get node.exe path
 $nodePath = (Get-Command node).Source
 
 # Install service
-& $nssmPath install NaturalsBackend "$nodePath" "dist/index.js"
-& $nssmPath set NaturalsBackend AppDirectory "$backendPath"
-& $nssmPath set NaturalsBackend DisplayName "Naturals Backend Service"
-& $nssmPath set NaturalsBackend Description "Backend API Service for Naturals Salon"
-& $nssmPath set NaturalsBackend Start SERVICE_AUTO_START
+& $nssmPath install RASBackend "$nodePath" "dist/index.js"
+& $nssmPath set RASBackend AppDirectory "$backendPath"
+& $nssmPath set RASBackend DisplayName "RAS Backend Service"
+& $nssmPath set RASBackend Description "Backend API Service for RAS Salon"
+& $nssmPath set RASBackend Start SERVICE_AUTO_START
 
 # Set environment variables
-& $nssmPath set NaturalsBackend AppEnvironmentExtra NODE_ENV=production
+& $nssmPath set RASBackend AppEnvironmentExtra NODE_ENV=production
 
 # Configure logging
 $backendLogPath = Join-Path $backendPath "logs"
 if (-not (Test-Path $backendLogPath)) {
     New-Item -ItemType Directory -Path $backendLogPath -Force | Out-Null
 }
-& $nssmPath set NaturalsBackend AppStdout "$backendLogPath\service-output.log"
-& $nssmPath set NaturalsBackend AppStderr "$backendLogPath\service-error.log"
-& $nssmPath set NaturalsBackend AppRotateFiles 1
-& $nssmPath set NaturalsBackend AppRotateBytes 10485760
+& $nssmPath set RASBackend AppStdout "$backendLogPath\service-output.log"
+& $nssmPath set RASBackend AppStderr "$backendLogPath\service-error.log"
+& $nssmPath set RASBackend AppRotateFiles 1
+& $nssmPath set RASBackend AppRotateBytes 10485760
 
 # Configure restart behavior
-& $nssmPath set NaturalsBackend AppExit Default Restart
-& $nssmPath set NaturalsBackend AppRestartDelay 5000
+& $nssmPath set RASBackend AppExit Default Restart
+& $nssmPath set RASBackend AppRestartDelay 5000
 
 Write-Host "Backend service installed" -ForegroundColor Green
 Write-Host ""
@@ -140,32 +140,32 @@ Write-Host ""
 Write-Host "[5/6] Installing Frontend Service..." -ForegroundColor Yellow
 
 # Remove existing service if present
-& $nssmPath stop NaturalsFrontend 2>$null
-& $nssmPath remove NaturalsFrontend confirm 2>$null
+& $nssmPath stop RASFrontend 2>$null
+& $nssmPath remove RASFrontend confirm 2>$null
 
 # Install service (use direct path to next.js, not .cmd wrapper)
-& $nssmPath install NaturalsFrontend "$nodePath" "node_modules\next\dist\bin\next" "start" "-p" "8000" "-H" "10.91.1.48"
-& $nssmPath set NaturalsFrontend AppDirectory "$frontendPath"
-& $nssmPath set NaturalsFrontend DisplayName "Naturals Frontend Service"
-& $nssmPath set NaturalsFrontend Description "Frontend Web Application for Naturals Salon"
-& $nssmPath set NaturalsFrontend Start SERVICE_AUTO_START
+& $nssmPath install RASFrontend "$nodePath" "node_modules\next\dist\bin\next" "start" "-p" "8000" "-H" "10.91.1.48"
+& $nssmPath set RASFrontend AppDirectory "$frontendPath"
+& $nssmPath set RASFrontend DisplayName "RAS Frontend Service"
+& $nssmPath set RASFrontend Description "Frontend Web Application for RAS Salon"
+& $nssmPath set RASFrontend Start SERVICE_AUTO_START
 
 # Set environment variables
-& $nssmPath set NaturalsFrontend AppEnvironmentExtra NODE_ENV=production
+& $nssmPath set RASFrontend AppEnvironmentExtra NODE_ENV=production
 
 # Configure logging
 $frontendLogPath = Join-Path $frontendPath "logs"
 if (-not (Test-Path $frontendLogPath)) {
     New-Item -ItemType Directory -Path $frontendLogPath -Force | Out-Null
 }
-& $nssmPath set NaturalsFrontend AppStdout "$frontendLogPath\service-output.log"
-& $nssmPath set NaturalsFrontend AppStderr "$frontendLogPath\service-error.log"
-& $nssmPath set NaturalsFrontend AppRotateFiles 1
-& $nssmPath set NaturalsFrontend AppRotateBytes 10485760
+& $nssmPath set RASFrontend AppStdout "$frontendLogPath\service-output.log"
+& $nssmPath set RASFrontend AppStderr "$frontendLogPath\service-error.log"
+& $nssmPath set RASFrontend AppRotateFiles 1
+& $nssmPath set RASFrontend AppRotateBytes 10485760
 
 # Configure restart behavior
-& $nssmPath set NaturalsFrontend AppExit Default Restart
-& $nssmPath set NaturalsFrontend AppRestartDelay 5000
+& $nssmPath set RASFrontend AppExit Default Restart
+& $nssmPath set RASFrontend AppRestartDelay 5000
 
 Write-Host "Frontend service installed" -ForegroundColor Green
 Write-Host ""
@@ -173,10 +173,10 @@ Write-Host ""
 # Step 6: Start Services
 Write-Host "[6/6] Starting Services..." -ForegroundColor Yellow
 
-& $nssmPath start NaturalsBackend
+& $nssmPath start RASBackend
 Start-Sleep -Seconds 3
 
-& $nssmPath start NaturalsFrontend
+& $nssmPath start RASFrontend
 Start-Sleep -Seconds 3
 
 Write-Host "Services started" -ForegroundColor Green
@@ -188,8 +188,8 @@ Write-Host "Verifying Services..." -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$backendService = Get-Service -Name "NaturalsBackend" -ErrorAction SilentlyContinue
-$frontendService = Get-Service -Name "NaturalsFrontend" -ErrorAction SilentlyContinue
+$backendService = Get-Service -Name "RASBackend" -ErrorAction SilentlyContinue
+$frontendService = Get-Service -Name "RASFrontend" -ErrorAction SilentlyContinue
 
 if ($backendService) {
     Write-Host "Backend Service:" -ForegroundColor Yellow
@@ -221,9 +221,9 @@ Write-Host "  Frontend: http://10.91.1.48:8000" -ForegroundColor Cyan
 Write-Host "  Backend API: http://10.91.1.48:4000/api" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Manage services:" -ForegroundColor Yellow
-Write-Host "  View status: Get-Service Naturals*" -ForegroundColor Gray
-Write-Host "  Stop: Stop-Service NaturalsBackend" -ForegroundColor Gray
-Write-Host "  Start: Start-Service NaturalsBackend" -ForegroundColor Gray
+Write-Host "  View status: Get-Service RAS*" -ForegroundColor Gray
+Write-Host "  Stop: Stop-Service RASBackend" -ForegroundColor Gray
+Write-Host "  Start: Start-Service RASBackend" -ForegroundColor Gray
 Write-Host "  Services Manager: services.msc" -ForegroundColor Gray
 Write-Host ""
 Write-Host "View logs:" -ForegroundColor Yellow

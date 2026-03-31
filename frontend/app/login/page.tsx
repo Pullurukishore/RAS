@@ -7,7 +7,7 @@ import { Lock, Mail, Loader2, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-r
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@naturals.com");
+  const [email, setEmail] = useState("admin@ras.com");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -96,11 +96,11 @@ export default function LoginPage() {
           >
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-indigo-600 p-[1px] shadow-lg shadow-teal-500/20 group hover:shadow-teal-500/40 transition-shadow duration-500">
               <div className="w-full h-full bg-slate-950 rounded-[15px] flex items-center justify-center">
-                <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-teal-400 to-indigo-400 group-hover:scale-110 transition-transform duration-500">N</span>
+                <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-teal-400 to-indigo-400 group-hover:scale-110 transition-transform duration-500">R</span>
               </div>
             </div>
             <span className="text-2xl font-bold tracking-tight text-white flex items-center">
-              Naturals
+              RAS
             </span>
           </motion.div>
 
@@ -129,7 +129,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@naturals.com"
+                    placeholder="admin@ras.com"
                     className="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.05] rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 focus:bg-white/[0.05] transition-all text-sm font-medium"
                   />
                 </div>
@@ -209,7 +209,7 @@ export default function LoginPage() {
             className="mt-auto pt-8 flex items-center justify-between"
           >
             <p className="text-xs text-slate-500 font-medium tracking-wide">
-              &copy; {new Date().getFullYear()} Naturals Salon
+              &copy; {new Date().getFullYear()} RAS Salon
             </p>
             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
               v0.1.0-alpha

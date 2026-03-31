@@ -1,4 +1,4 @@
-# Naturals Salon Management System
+# RAS Salon Management System
 
 A premium Admin-only ERP and POS platform.
 
@@ -28,4 +28,4 @@ npm run dev
 - **Salon Menu**: Tabbed navigation (Services, Products, Packages) with Gender and Category filters.
 - **Billing POS**: Interactive billing table with Staff attribution and multi-tender payment support.
 - **Client Management**: Customer search and basic profile integration.
-- **Branding**: Full "Naturals" color palette (Teal, Rose, Amber, Deep Blue).
+- **Branding**: Full "RAS" color palette (Teal, Rose, Amber, Deep Blue).

@@ -580,10 +580,10 @@ app.post('/api/customers', async (req: Request, res: Response) => {
                 orderBy: { membershipId: 'desc' }
             });
             let nextNum = 1;
-            if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+            if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                 nextNum = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
             }
-            membershipId = `NAT-M-${nextNum.toString().padStart(4, '0')}`;
+            membershipId = `RAS-M-${nextNum.toString().padStart(4, '0')}`;
         }
 
         const newCustomer = await prisma.customer.create({
@@ -621,10 +621,10 @@ app.put('/api/customers/:id', async (req: Request, res: Response) => {
                 orderBy: { membershipId: 'desc' }
             });
             let nextNum = 1;
-            if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+            if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                 nextNum = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
             }
-            membershipId = `NAT-M-${nextNum.toString().padStart(4, '0')}`;
+            membershipId = `RAS-M-${nextNum.toString().padStart(4, '0')}`;
         }
 
         const updatedCustomer = await prisma.customer.update({
@@ -732,10 +732,10 @@ app.post('/api/billing', async (req: Request, res: Response) => {
                             orderBy: { membershipId: 'desc' }
                         });
                         let nextNumM = 1;
-                        if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+                        if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                             nextNumM = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
                         }
-                        const mId = `NAT-M-${nextNumM.toString().padStart(4, '0')}`;
+                        const mId = `RAS-M-${nextNumM.toString().padStart(4, '0')}`;
 
                         await prisma.customer.update({
                             where: { id: customerId },
@@ -1207,7 +1207,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 
         const storedPassword = setting ? JSON.parse(setting.value).password : 'admin123';
 
-        if (email === "admin@naturals.com" && password === storedPassword) {
+        if (email === "admin@ras.com" && password === storedPassword) {
             res.json({ success: true, user: { name: "Admin", email } });
         } else {
             res.status(401).json({ error: "Invalid email or password" });
