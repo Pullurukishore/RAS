@@ -565,10 +565,10 @@ app.post('/api/customers', async (req, res) => {
                 orderBy: { membershipId: 'desc' }
             });
             let nextNum = 1;
-            if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+            if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                 nextNum = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
             }
-            membershipId = `NAT-M-${nextNum.toString().padStart(4, '0')}`;
+            membershipId = `RAS-M-${nextNum.toString().padStart(4, '0')}`;
         }
         const newCustomer = await prisma.customer.create({
             data: {
@@ -602,10 +602,10 @@ app.put('/api/customers/:id', async (req, res) => {
                 orderBy: { membershipId: 'desc' }
             });
             let nextNum = 1;
-            if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+            if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                 nextNum = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
             }
-            membershipId = `NAT-M-${nextNum.toString().padStart(4, '0')}`;
+            membershipId = `RAS-M-${nextNum.toString().padStart(4, '0')}`;
         }
         const updatedCustomer = await prisma.customer.update({
             where: { id },
@@ -704,10 +704,10 @@ app.post('/api/billing', async (req, res) => {
                             orderBy: { membershipId: 'desc' }
                         });
                         let nextNumM = 1;
-                        if (lastMember && lastMember.membershipId?.startsWith('NAT-M-')) {
+                        if (lastMember && lastMember.membershipId?.startsWith('RAS-M-')) {
                             nextNumM = (parseInt(lastMember.membershipId.split('-')[2]) || 0) + 1;
                         }
-                        const mId = `NAT-M-${nextNumM.toString().padStart(4, '0')}`;
+                        const mId = `RAS-M-${nextNumM.toString().padStart(4, '0')}`;
                         await prisma.customer.update({
                             where: { id: customerId },
                             data: {
@@ -1141,7 +1141,7 @@ app.post('/api/auth/login', async (req, res) => {
             where: { key: 'security' }
         });
         const storedPassword = setting ? JSON.parse(setting.value).password : 'admin123';
-        if (email === "admin@naturals.com" && password === storedPassword) {
+        if (email === "admin@ras.com" && password === storedPassword) {
             res.json({ success: true, user: { name: "Admin", email } });
         }
         else {
@@ -1152,6 +1152,6 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server running on http://10.91.1.48:${PORT}`);
 });
