@@ -1217,6 +1217,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     }
 });
 
-app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Server running on http://10.91.1.48:${PORT}`);
+app.listen(Number(PORT), 'localhost', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
+

@@ -1152,6 +1152,6 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Server running on http://10.91.1.48:${PORT}`);
+app.listen(Number(PORT), 'localhost', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
