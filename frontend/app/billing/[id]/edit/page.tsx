@@ -36,7 +36,8 @@ export default function EditBillingPage() {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [totalDiscount, setTotalDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState<"amount" | "percentage">("amount");
+  const [discountInput, setDiscountInput] = useState<string>("");
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -53,7 +54,9 @@ export default function EditBillingPage() {
         if (invoiceData && !invoiceData.error) {
           if (invoiceData.customer) setSelectedCustomer(invoiceData.customer);
           if (invoiceData.payments?.length > 0) setPaymentMethod(invoiceData.payments[0].method);
-          if (invoiceData.totalDiscount) setTotalDiscount(invoiceData.totalDiscount);
+          if (invoiceData.totalDiscount) {
+            setDiscountInput(String(invoiceData.totalDiscount));
+          }
 
           if (invoiceData.items) {
             const mappedItems: BillItem[] = invoiceData.items.map((item: any) => ({
@@ -149,6 +152,17 @@ export default function EditBillingPage() {
 
   /* ─── Totals ─── */
   const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.price * item.qty), 0), [items]);
+  const totalDiscount = useMemo(() => {
+    let calcDisc = 0;
+    const val = Number(discountInput) || 0;
+    if (discountType === "percentage") {
+      calcDisc = subTotal * (val / 100);
+    } else {
+      calcDisc = val;
+    }
+    calcDisc = Math.min(calcDisc, subTotal);
+    return Math.max(0, calcDisc);
+  }, [subTotal, discountInput, discountType]);
   const total = useMemo(() => Math.max(0, subTotal - totalDiscount), [subTotal, totalDiscount]);
 
   /* ─── Submit ─── */
@@ -383,22 +397,41 @@ export default function EditBillingPage() {
                 <span>Subtotal</span>
                 <span className="text-white font-bold tabular-nums">₹{subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between items-center text-rose-400/90">
+              <div className="flex justify-between items-start text-rose-400/90">
                 <span>Discount</span>
-                <div className="flex items-center gap-1">
-                  <span>-₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max={subTotal}
-                    value={totalDiscount || ""}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      setTotalDiscount(Math.min(val, subTotal)); // prevent discount > subtotal
-                    }}
-                    placeholder="0"
-                    className="w-20 bg-rose-500/10 border border-rose-500/30 rounded-lg px-2 py-1 text-right text-rose-400 font-bold outline-none focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all font-mono"
-                  />
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setDiscountType("amount"); setDiscountInput(""); }}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${discountType === "amount" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "text-slate-400 hover:text-slate-300"}`}
+                    >
+                      ₹
+                    </button>
+                    <button
+                      onClick={() => { setDiscountType("percentage"); setDiscountInput(""); }}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${discountType === "percentage" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "text-slate-400 hover:text-slate-300"}`}
+                    >
+                      %
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold">{discountType === "amount" ? "-₹" : "%"}</span>
+                    <input
+                      type="text"
+                      value={discountInput}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/[^0-9.]/g, "");
+                        if (val.split('.').length > 2) return;
+                        if (discountType === "percentage" && Number(val) > 100) val = "100";
+                        setDiscountInput(val);
+                      }}
+                      placeholder="0"
+                      className="w-16 bg-rose-500/10 border border-rose-500/30 rounded-lg px-2 py-1 text-right text-rose-400 font-bold outline-none focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all font-mono"
+                    />
+                  </div>
+                  {discountType === "percentage" && discountInput && Number(discountInput) > 0 && (
+                    <span className="text-[10px] text-emerald-400 font-bold">-₹{totalDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  )}
                 </div>
               </div>
             </div>

@@ -100,7 +100,8 @@ export default function NewBillingPage() {
 
   // Step 3 State
   const [paymentMethod, setPaymentMethod] = useState("Cash");
-  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState<"amount" | "percentage">("amount");
+  const [discountInput, setDiscountInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Persistence State
@@ -245,11 +246,22 @@ export default function NewBillingPage() {
   }, []);
 
   /* ─── Totals ─── */
-  const { subTotal, total } = useMemo(() => {
+  const { subTotal, total, discountAmount } = useMemo(() => {
     const sub = items.reduce((acc, item) => acc + item.price, 0);
-    const final = Math.max(0, sub - discount);
-    return { subTotal: sub, total: final };
-  }, [items, discount]);
+    
+    let calcDisc = 0;
+    const val = Number(discountInput) || 0;
+    if (discountType === "percentage") {
+      calcDisc = sub * (val / 100);
+    } else {
+      calcDisc = val;
+    }
+    calcDisc = Math.min(calcDisc, sub);
+    calcDisc = Math.max(0, calcDisc);
+    
+    const final = Math.max(0, sub - calcDisc);
+    return { subTotal: sub, total: final, discountAmount: calcDisc };
+  }, [items, discountInput, discountType]);
 
   /* ─── Submit ─── */
   const handleCompletePayment = async () => {
@@ -269,7 +281,7 @@ export default function NewBillingPage() {
         price: i.price,
       })),
 
-      totalDiscount: discount,
+      totalDiscount: discountAmount,
       payments: [{ method: paymentMethod, amount: total }],
     };
 
@@ -365,14 +377,6 @@ export default function NewBillingPage() {
 
   const canProceedToStep2 = selectedCustomer !== null;
   const canProceedToStep3 = items.length > 0 && !items.some((i) => !i.staffId);
-  const maxDiscount = subTotal;
-
-  // Discount validation - ensure discount doesn't exceed max
-  const handleDiscountChange = useCallback((value: string) => {
-    const val = value.replace(/\D/g, "");
-    const numVal = Number(val);
-    setDiscount(Math.min(numVal, maxDiscount));
-  }, [maxDiscount]);
 
   /* ═══════════════════════════════
      RENDER
@@ -895,21 +899,51 @@ export default function NewBillingPage() {
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-slate-900">Apply Discount</h2>
-                      <p className="text-[11px] text-slate-400 font-medium">Enter discount amount in ₹</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Choose amount or percentage</p>
                     </div>
                   </div>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</div>
-                    <input
-                      type="text"
-                      value={discount === 0 ? "" : discount}
-                      onChange={(e) => handleDiscountChange(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white focus:border-rose-400 focus:ring-2 focus:ring-rose-500/10 outline-none transition-all"
-                    />
-                    {discount >= maxDiscount && maxDiscount > 0 && (
-                      <p className="text-[10px] text-rose-500 mt-1.5 font-medium">Maximum discount applied</p>
-                    )}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                      <button
+                        onClick={() => { setDiscountType("amount"); setDiscountInput(""); }}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${discountType === "amount" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                      >
+                        Amount (₹)
+                      </button>
+                      <button
+                        onClick={() => { setDiscountType("percentage"); setDiscountInput(""); }}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${discountType === "percentage" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                      >
+                        Percentage (%)
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                        {discountType === "amount" ? "₹" : "%"}
+                      </div>
+                      <input
+                        type="text"
+                        value={discountInput}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.]/g, "");
+                          if (val.split('.').length > 2) return;
+                          if (discountType === "percentage" && Number(val) > 100) {
+                            val = "100";
+                          }
+                          setDiscountInput(val);
+                        }}
+                        placeholder="0.00"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white focus:border-rose-400 focus:ring-2 focus:ring-rose-500/10 outline-none transition-all"
+                      />
+                      {discountType === "percentage" && discountInput && Number(discountInput) > 0 && (
+                        <p className="text-[10px] text-emerald-600 mt-1.5 font-medium border border-emerald-100 bg-emerald-50 rounded-lg px-2 py-1 inline-block">
+                          Applied discount: ₹{discountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </p>
+                      )}
+                      {discountAmount >= subTotal && subTotal > 0 && discountType === "amount" && (
+                        <p className="text-[10px] text-rose-500 mt-1.5 font-medium">Maximum discount applied (100%)</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -992,10 +1026,10 @@ export default function NewBillingPage() {
                       <span className="text-white font-bold">₹{subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                     </div>
 
-                    {discount > 0 && (
+                    {discountAmount > 0 && (
                       <div className="flex justify-between text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg -mx-3">
                         <span className="text-xs font-bold uppercase tracking-widest">Discount</span>
-                        <span className="font-bold">-₹{discount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                        <span className="font-bold">-₹{discountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
                   </div>

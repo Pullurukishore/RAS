@@ -144,7 +144,7 @@ Write-Host "[5/6] Installing Frontend Service..." -ForegroundColor Yellow
 & $nssmPath remove RASFrontend confirm 2>$null
 
 # Install service (use direct path to next.js, not .cmd wrapper)
-& $nssmPath install RASFrontend "$nodePath" "node_modules\next\dist\bin\next" "start" "-p" "8000" "-H" "10.91.1.48"
+& $nssmPath install RASFrontend "$nodePath" "node_modules\next\dist\bin\next" "start" "-p" "8000" "-H" "localhost"
 & $nssmPath set RASFrontend AppDirectory "$frontendPath"
 & $nssmPath set RASFrontend DisplayName "RAS Frontend Service"
 & $nssmPath set RASFrontend Description "Frontend Web Application for RAS Salon"
@@ -217,8 +217,8 @@ Write-Host "Your applications are now running as Windows services!" -ForegroundC
 Write-Host "They will start automatically when your system boots." -ForegroundColor Green
 Write-Host ""
 Write-Host "Access your application:" -ForegroundColor Yellow
-Write-Host "  Frontend: http://10.91.1.48:8000" -ForegroundColor Cyan
-Write-Host "  Backend API: http://10.91.1.48:4000/api" -ForegroundColor Cyan
+Write-Host "  Frontend: http://localhost:8000" -ForegroundColor Cyan
+Write-Host "  Backend API: http://localhost:4000/api" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Manage services:" -ForegroundColor Yellow
 Write-Host "  View status: Get-Service RAS*" -ForegroundColor Gray
