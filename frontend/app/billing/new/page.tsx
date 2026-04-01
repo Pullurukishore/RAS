@@ -26,6 +26,8 @@ import {
   Phone,
   Hash,
   Crown,
+  Scissors,
+  Clock,
 } from "lucide-react";
 
 // ─── Helpers ───
@@ -57,6 +59,7 @@ interface Customer {
 interface Staff {
   id: string;
   name: string;
+  role: string;
 }
 
 interface MenuItem {
@@ -103,6 +106,11 @@ export default function NewBillingPage() {
   const [discountType, setDiscountType] = useState<"amount" | "percentage">("amount");
   const [discountInput, setDiscountInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // History State
+  const [customerHistory, setCustomerHistory] = useState<any[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Persistence State
   const [customerScrollTop, setCustomerScrollTop] = useState(0);
@@ -155,6 +163,30 @@ export default function NewBillingPage() {
     loadData();
   }, [apiUrl]);
 
+  // Fetch customer history when selected
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!selectedCustomer) {
+        setCustomerHistory([]);
+        return;
+      }
+      setIsHistoryLoading(true);
+      try {
+        const res = await fetch(`${apiUrl}/customers/${selectedCustomer.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCustomerHistory(data.history || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch customer history:", err);
+      } finally {
+        setIsHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [selectedCustomer, apiUrl]);
+
   /* ─── Customer Actions ─── */
   const handleCreateCustomer = async () => {
     if (!newCustomer.name) return alert("Customer name is required");
@@ -193,6 +225,9 @@ export default function NewBillingPage() {
     const useMemberPrice = isMember && hasMemberPrice;
     const itemPrice = (useMemberPrice && menuItem.mPrice !== undefined) ? menuItem.mPrice : menuItem.price;
     
+    const itemGst = menuItem.gst || 0;
+    const taxAmount = (itemPrice * (itemGst / 100));
+    
     const newItem: BillItem = {
       id: Math.random().toString(36).substring(2, 9),
       description: menuItem.description,
@@ -203,7 +238,9 @@ export default function NewBillingPage() {
       mPrice: menuItem.mPrice,
       isMemberPrice: useMemberPrice,
       qty: 1,
-      total: itemPrice,
+      gst: itemGst,
+      taxAmount: taxAmount,
+      total: itemPrice + taxAmount,
       serviceId: menuItem.type === "Service" ? menuItem.id : undefined,
       productId: menuItem.type === "Product" ? menuItem.id : undefined,
       packageId: menuItem.type === "Package" ? menuItem.id : undefined,
@@ -221,11 +258,14 @@ export default function NewBillingPage() {
         const hasMemberPrice = item.mPrice !== undefined && item.mPrice !== null;
         const useMemberPrice = isMember && hasMemberPrice;
         const newPrice = useMemberPrice ? (item.mPrice ?? item.regularPrice ?? item.price) : (item.regularPrice ?? item.price);
+        const itemGst = item.gst || 0;
+        const taxAmount = (newPrice * (itemGst / 100));
         
         return {
           ...item,
           price: newPrice,
-          total: newPrice * (item.qty || 1),
+          taxAmount: taxAmount,
+          total: (newPrice + taxAmount) * (item.qty || 1),
           isMemberPrice: useMemberPrice
         };
       })
@@ -236,7 +276,7 @@ export default function NewBillingPage() {
     const selectedStaff = staff.find((s) => s.id === staffId);
     setItems((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, staffId, staffName: selectedStaff?.name || "" } : item
+        item.id === itemId ? { ...item, staffId, staffName: selectedStaff?.name || "", staffRole: selectedStaff?.role || "" } : item
       )
     );
   }, [staff]);
@@ -246,8 +286,9 @@ export default function NewBillingPage() {
   }, []);
 
   /* ─── Totals ─── */
-  const { subTotal, total, discountAmount } = useMemo(() => {
-    const sub = items.reduce((acc, item) => acc + item.price, 0);
+  const { subTotal, total, discountAmount, totalTax } = useMemo(() => {
+    const sub = items.reduce((acc, item) => acc + (item.price * (item.qty || 1)), 0);
+    const tax = items.reduce((acc, item) => acc + ( (item.taxAmount || 0) * (item.qty || 1)), 0);
     
     let calcDisc = 0;
     const val = Number(discountInput) || 0;
@@ -259,8 +300,8 @@ export default function NewBillingPage() {
     calcDisc = Math.min(calcDisc, sub);
     calcDisc = Math.max(0, calcDisc);
     
-    const final = Math.max(0, sub - calcDisc);
-    return { subTotal: sub, total: final, discountAmount: calcDisc };
+    const final = Math.max(0, (sub + tax) - calcDisc);
+    return { subTotal: sub, total: final, discountAmount: calcDisc, totalTax: tax };
   }, [items, discountInput, discountType]);
 
   /* ─── Submit ─── */
@@ -279,6 +320,8 @@ export default function NewBillingPage() {
         staffId: i.staffId,
         quantity: i.qty || 1,
         price: i.price,
+        gst: i.gst || 0,
+        taxAmount: (i.taxAmount || 0) * (i.qty || 1),
       })),
 
       totalDiscount: discountAmount,
@@ -957,6 +1000,7 @@ export default function NewBillingPage() {
                       { label: "Customer", value: selectedCustomer?.name, ok: !!selectedCustomer },
                       { label: "Items", value: `${items.length} item${items.length !== 1 ? "s" : ""}`, ok: items.length > 0 },
                       { label: "Staff", value: "All assigned", ok: !items.some(i => !i.staffId) },
+                      { label: "GST", value: `₹${totalTax.toLocaleString()}`, ok: true },
                       { label: "Payment", value: paymentMethod, ok: true },
                     ].map((check, i) => (
                       <div key={i} className="flex items-center gap-3 text-sm">
@@ -979,99 +1023,158 @@ export default function NewBillingPage() {
                 </button>
               </div>
 
-              {/* Right: Order summary (dark card) */}
-              <div className="lg:col-span-2">
-                <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-2xl shadow-slate-900/20 relative overflow-hidden flex flex-col h-full">
-                  {/* Decorative */}
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+              {/* Right: History & Order summary */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Customer History Section */}
+                {selectedCustomer && (
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 overflow-hidden relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-lg flex items-center justify-center shadow-md">
+                          <Receipt size={16} />
+                        </div>
+                        <div>
+                          <h2 className="text-xs font-black text-slate-900">Payment History</h2>
+                          <p className="text-[10px] text-slate-400 font-medium">Customer insights</p>
+                        </div>
+                      </div>
+                      
+                      {customerHistory.length > 0 && (
+                        <div className="text-right">
+                          <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider block">Spent</span>
+                          <span className="text-xs font-black text-slate-900">
+                            ₹{customerHistory.reduce((sum, inv) => sum + (inv.totalNet || 0), 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  <h2 className="text-lg font-bold mb-5 relative z-10 flex items-center gap-2">
-                    <Receipt size={18} className="text-teal-400" />
+                    {isHistoryLoading ? (
+                      <div className="py-4 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-indigo-500" size={16} />
+                      </div>
+                    ) : customerHistory.length === 0 ? (
+                      <div className="py-3 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Customer (0 Visits)</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-2">
+                            <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wider">Visits</p>
+                            <p className="text-sm font-black text-slate-900">{customerHistory.length}</p>
+                          </div>
+                          <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-2 text-right">
+                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Avg Ticket</p>
+                            <p className="text-sm font-black text-slate-900">
+                              ₹{Math.round(customerHistory.reduce((sum, inv) => sum + (inv.totalNet || 0), 0) / customerHistory.length).toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          {customerHistory.slice(0, 2).map((inv, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100/50 text-[10px]">
+                              <span className="font-bold text-slate-600">
+                                {new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              </span>
+                              <span className="font-black text-slate-900">₹{inv.totalNet.toLocaleString()}</span>
+                            </div>
+                          ))}
+                          <button 
+                            onClick={() => setIsHistoryModalOpen(true)}
+                            className="w-full mt-1.5 py-2 text-[9px] font-black text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 rounded-lg uppercase tracking-widest transition-colors border border-indigo-100/50"
+                          >
+                            Full Transaction Breakdown
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Order Summary (Compact) */}
+                <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-2xl shadow-slate-900/20 relative overflow-hidden flex flex-col">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  
+                  <h2 className="text-sm font-bold mb-4 relative z-10 flex items-center gap-2">
+                    <Receipt size={16} className="text-teal-400" />
                     Order Summary
                   </h2>
 
-                  {/* Customer */}
-                  <div className="bg-white/10 rounded-xl p-4 mb-5 relative z-10 backdrop-blur-sm border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg">
-                        {selectedCustomer?.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Billed To</p>
-                        <p className="font-bold text-base">{selectedCustomer?.name}</p>
-                      </div>
+                  <div className="bg-white/10 rounded-xl p-3 mb-4 relative z-10 backdrop-blur-sm border border-white/5 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center font-bold text-sm">
+                      {selectedCustomer?.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Billed To</p>
+                      <p className="font-bold text-sm leading-none">{selectedCustomer?.name}</p>
                     </div>
                   </div>
 
-                  {/* Line items */}
-                  <div className="space-y-2 mb-5 relative z-10 flex-1 overflow-y-auto max-h-48">
+                  <div className="space-y-1.5 mb-4 relative z-10 max-h-32 overflow-y-auto custom-scrollbar pr-1">
                     {items.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center text-sm py-1.5 border-b border-white/5 last:border-0">
-                        <div className="flex items-center gap-2 truncate mr-3 flex-1">
-                          <span className="text-slate-300 truncate">{item.description}</span>
-                          {item.isMemberPrice && (
-                            <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 px-1 rounded-sm border border-amber-500/30">M</span>
-                          )}
+                      <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-white/5 last:border-0">
+                        <div className="flex items-center gap-1.5 truncate mr-3 flex-1 text-slate-300">
+                          <span className="truncate">{item.description}</span>
+                          <span className="text-[8px] font-black text-teal-400 border border-teal-400/30 px-1 rounded-sm tracking-tighter tabular-nums bg-teal-400/5">
+                            {item.gst}%
+                          </span>
+                          {item.isMemberPrice && <span className="text-[7px] font-black bg-amber-500/30 text-amber-400 px-1 rounded-sm">M</span>}
                         </div>
-                        <span className="text-white font-bold font-mono tabular-nums">₹{item.total.toLocaleString()}</span>
+                        <span className="font-bold font-mono text-white tabular-nums">₹{item.total.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Totals */}
-                  <div className="space-y-2 mb-6 relative z-10 font-mono text-sm pt-4 border-t border-white/10">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Subtotal</span>
-                      <span className="text-white font-bold">₹{subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  <div className="space-y-1.5 mb-5 relative z-10 font-mono text-xs pt-3 border-t border-white/10">
+                    <div className="flex justify-between text-slate-400 text-[11px]">
+                      <span>Subtotal (Base)</span>
+                      <span>₹{subTotal.toLocaleString("en-IN")}</span>
                     </div>
-
+                    <div className="flex justify-between text-emerald-400 text-[11px]">
+                      <span>GST Allocation</span>
+                      <span>₹{totalTax.toLocaleString("en-IN")}</span>
+                    </div>
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg -mx-3">
-                        <span className="text-xs font-bold uppercase tracking-widest">Discount</span>
-                        <span className="font-bold">-₹{discountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                      <div className="flex justify-between text-rose-400 text-[11px] bg-rose-500/10 px-2 py-1 rounded-md -mx-1">
+                        <span>Discount</span>
+                        <span>-₹{discountAmount.toLocaleString("en-IN")}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Grand total */}
                   <div className="flex justify-between items-end mb-6 relative z-10">
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Total Due</p>
-                      <span className="text-slate-400 text-xs font-medium">via {paymentMethod}</span>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5 tracking-widest">Total Due</p>
+                      <span className="text-slate-500 text-[10px]">via {paymentMethod}</span>
                     </div>
-                    <span className="text-4xl font-black text-teal-400 tracking-tight tabular-nums">
+                    <span className="text-3xl font-black text-teal-400 tracking-tighter tabular-nums">
                       ₹{total.toLocaleString("en-IN")}
                     </span>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex gap-3 relative z-10 mt-auto">
+                  <div className="flex gap-3 relative z-10">
                     <button
                       onClick={() => handleStepChange(2)}
-                      className="hidden lg:flex px-4 py-3 rounded-xl font-bold text-sm bg-white/10 hover:bg-white/20 transition-colors items-center gap-1.5"
+                      className="px-4 py-3 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1.5"
                     >
                       <ChevronLeft size={14} /> Back
                     </button>
                     <button
                       onClick={handleCompletePayment}
                       disabled={isSubmitting}
-                      className="flex-1 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-900 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 transition-all flex justify-center items-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="flex-1 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-900 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 transition-all flex justify-center items-center gap-2 group disabled:opacity-70"
                     >
-                      {isSubmitting ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : (
-                        <>
-                          Submit Payment
-                          <CheckCircle2 className="group-hover:scale-110 transition-transform" size={18} />
-                        </>
-                      )}
+                      {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <>Pay & Proceed <CheckCircle2 size={16} /></>}
                     </button>
                   </div>
                 </div>
               </div>
             </motion.div>
           )}
+
+
         </AnimatePresence>
       </div>
 
@@ -1094,6 +1197,133 @@ export default function NewBillingPage() {
             </div>
             <div className="flex-1 overflow-auto list-none">
               <SalonMenu onAdd={addItemToBill} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Customer History Detailed Modal ── */}
+      {isHistoryModalOpen && selectedCustomer && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 md:p-10 animate-in fade-in zoom-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsHistoryModalOpen(false)} />
+          <div className="bg-white w-full max-w-4xl h-full max-h-[85vh] rounded-3xl shadow-2xl relative z-10 flex flex-col overflow-hidden border border-white/20">
+            {/* Header */}
+            <div className="bg-slate-900 px-6 py-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
+                  <Receipt size={24} className="text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white leading-tight">Visit History</h3>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{selectedCustomer.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all group"
+              >
+                <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 italic-scrollbar">
+              {customerHistory.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                  <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-4 border border-slate-200">
+                    <Clock size={32} className="text-slate-300" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">No detailed history found</p>
+                </div>
+              ) : (
+                customerHistory.map((invoice, idx) => (
+                  <div key={idx} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
+                    <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white px-3 py-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center min-w-[50px]">
+                          <span className="text-sm font-black text-slate-900">
+                            {new Date(invoice.date).getDate()}
+                          </span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                            {new Date(invoice.date).toLocaleString('default', { month: 'short' })}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-0.5">Invoice #{invoice.invoiceId || 'N/A'}</p>
+                          <p className="text-xs font-bold text-slate-500">{new Date(invoice.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-slate-900">₹{invoice.totalNet?.toLocaleString()}</p>
+                        <div className="flex gap-1 mt-1 justify-end">
+                          {invoice.payments?.map((p: any, i: number) => (
+                            <span key={i} className="text-[9px] font-black text-slate-400 bg-white border border-slate-100 px-2 py-0.5 rounded-full uppercase tracking-tight">
+                              {p.method}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Breakdown */}
+                    <div className="p-5 space-y-3">
+                      {invoice.items?.map((item: any, iidx: number) => {
+                        const description = item.service?.description || item.product?.description || item.package?.description || item.membershipPlan?.name || "Item";
+                        const type = item.service ? "Service" : item.product ? "Product" : item.package ? "Package" : "Plan";
+                        
+                        return (
+                          <div key={iidx} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                type === 'Service' ? 'bg-rose-50 text-rose-500' : 
+                                type === 'Product' ? 'bg-amber-50 text-amber-500' : 'bg-indigo-50 text-indigo-500'
+                              }`}>
+                                {type === 'Service' ? <Scissors size={14} /> : <ShoppingBag size={14} />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-800">{description}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                  {type} • Qty {item.quantity || 1} • {item.staff?.name || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">₹{item.total?.toLocaleString() || item.price?.toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Summary small */}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex gap-4">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-300 uppercase">Gross</span>
+                            <span className="text-[11px] font-bold text-slate-500">₹{invoice.totalGross?.toLocaleString()}</span>
+                          </div>
+                          {invoice.totalDiscount > 0 && (
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black text-rose-300 uppercase">Discount</span>
+                              <span className="text-[11px] font-bold text-rose-500">-₹{invoice.totalDiscount?.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                          <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Paid In Full</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-slate-100 flex justify-center bg-white shrink-0">
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-xl shadow-slate-900/20"
+              >
+                Close History
+              </button>
             </div>
           </div>
         </div>

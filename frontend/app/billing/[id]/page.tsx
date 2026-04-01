@@ -208,7 +208,7 @@ export default function InvoiceViewPage() {
                             </span>
                             {item.staff?.name && (
                               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                                <User size={12} /> {item.staff.name}
+                                <User size={12} /> {item.staff.name} {item.staff.role && <span className="text-[10px] font-normal opacity-70 ml-1">({item.staff.role})</span>}
                               </span>
                             )}
                           </div>
@@ -288,12 +288,17 @@ export default function InvoiceViewPage() {
                 {/* Subtotals */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-slate-400">
-                    <span className="text-sm font-medium">Subtotal</span>
+                    <span className="text-sm font-medium">Base Subtotal</span>
                     <span className="font-mono text-slate-300">₹{invoice.totalGross.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                   </div>
                   
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="text-sm font-medium">GST (Tax)</span>
+                    <span className="font-mono text-emerald-400 font-bold">₹{(invoice.totalTax || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  
                   {invoice.totalDiscount > 0 && (
-                    <div className="flex justify-between items-center text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg -mx-3">
+                    <div className="flex justify-between items-center text-rose-400 bg-rose-500/10 px-3 py-2 rounded-lg -mx-3">
                       <span className="text-sm font-semibold flex items-center gap-1">
                         Discount Applied
                       </span>

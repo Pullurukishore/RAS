@@ -279,9 +279,9 @@ app.post('/api/menu', async (req: Request, res: Response) => {
                         data: { code, description, price, mPrice } 
                     });
                 } else {
-                    const { code, description, price, mPrice, gender, category, subcategory } = providedData;
+                    const { code, description, price, mPrice, gender, category, subcategory, gst } = providedData;
                     result = await prisma.service.create({ 
-                        data: { code, description, price, mPrice, gender, category, subcategory } 
+                        data: { code, description, price, mPrice, gender, category, subcategory, gst: Number(gst) || 0.0 } 
                     });
                 }
                 break; // Break loop on success
@@ -321,10 +321,10 @@ app.put('/api/menu/:id', async (req: Request, res: Response) => {
                 data: { code, description, price, mPrice } 
             });
         } else {
-            const { code, description, price, mPrice, gender, category, subcategory } = providedData;
+            const { code, description, price, mPrice, gender, category, subcategory, gst } = providedData;
             result = await prisma.service.update({ 
                 where: { id }, 
-                data: { code, description, price, mPrice, gender, category, subcategory } 
+                data: { code, description, price, mPrice, gender, category, subcategory, gst: Number(gst) || 0.0 } 
             });
         }
         res.json(result);
@@ -667,7 +667,8 @@ app.post('/api/billing', async (req: Request, res: Response) => {
     const { customerId, items, payments, totalDiscount = 0 } = req.body;
     try {
         const totalGross = items.reduce((sum: number, item: any) => sum + (item.price * (item.quantity || 1)), 0);
-        const totalNet = totalGross - totalDiscount;
+        const totalTax = items.reduce((sum: number, item: any) => sum + (Number(item.taxAmount) || 0), 0);
+        const totalNet = totalGross + totalTax - totalDiscount;
 
         let invoice;
         let retries = 3;
@@ -694,6 +695,7 @@ app.post('/api/billing', async (req: Request, res: Response) => {
                         customerId,
                         totalGross,
                         totalDiscount,
+                        totalTax,
                         totalNet,
                         items: {
                             create: items.map((item: any) => ({
@@ -704,7 +706,9 @@ app.post('/api/billing', async (req: Request, res: Response) => {
                                 staffId: item.staffId,
                                 quantity: item.quantity || 1,
                                 price: item.price,
-                                total: item.price * (item.quantity || 1)
+                                gst: Number(item.gst) || 0,
+                                taxAmount: Number(item.taxAmount) || 0,
+                                total: (item.price * (item.quantity || 1)) + (Number(item.taxAmount) || 0)
                             }))
                         },
                         payments: {
@@ -800,6 +804,7 @@ app.get('/api/billing', async (req: Request, res: Response) => {
             customer: inv.customer,
             createdAt: inv.date.toISOString(),
             totalGross: inv.totalGross,
+            totalTax: inv.totalTax || 0,
             totalDiscount: inv.totalDiscount,
             total: inv.totalNet,
             items: inv.items,
@@ -844,6 +849,7 @@ app.get('/api/billing/:id', async (req: Request, res: Response) => {
             customer: (invoice as any).customer,
             createdAt: (invoice as any).date.toISOString(),
             totalGross: (invoice as any).totalGross,
+            totalTax: (invoice as any).totalTax || 0,
             totalDiscount: (invoice as any).totalDiscount,
             total: (invoice as any).totalNet,
             items: (invoice as any).items,
@@ -863,7 +869,8 @@ app.put('/api/billing/:id', async (req: Request, res: Response) => {
 
     try {
         const totalGross = items.reduce((sum: number, item: any) => sum + (item.price * (item.quantity || 1)), 0);
-        const totalNet = totalGross - totalDiscount;
+        const totalTax = items.reduce((sum: number, item: any) => sum + (item.taxAmount || 0), 0);
+        const totalNet = totalGross + totalTax - totalDiscount;
 
         // Perform in a transaction to ensure integrity
         const updateResult = await prisma.$transaction(async (tx) => {
@@ -890,6 +897,7 @@ app.put('/api/billing/:id', async (req: Request, res: Response) => {
                 data: {
                     customerId,
                     totalGross,
+                    totalTax,
                     totalDiscount,
                     totalNet,
                     items: {
@@ -900,7 +908,9 @@ app.put('/api/billing/:id', async (req: Request, res: Response) => {
                             staffId: item.staffId,
                             quantity: item.quantity || 1,
                             price: item.price,
-                            total: item.price * (item.quantity || 1)
+                            gst: item.gst || 0,
+                            taxAmount: item.taxAmount || 0,
+                            total: (item.price * (item.quantity || 1)) + (item.taxAmount || 0)
                         }))
                     },
                     payments: {

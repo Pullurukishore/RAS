@@ -34,16 +34,6 @@ interface Toast {
   type: "success" | "error";
 }
 
-const roles = [
-  "Senior Stylist",
-  "Stylist", 
-  "Colorist",
-  "Makeup Artist",
-  "Nail Technician",
-  "Manager",
-  "Assistant"
-];
-
 const statuses = ["Active", "On Leave", "Inactive"];
 
 function StaffFormContent() {
@@ -59,7 +49,7 @@ function StaffFormContent() {
 
   const [formData, setFormData] = useState<Partial<Staff>>({
     name: "",
-    role: "Stylist",
+    role: "",
     phone: "",
     rating: 5.0,
     status: "Active",
@@ -133,7 +123,7 @@ function StaffFormContent() {
   const reset = () => {
     setFormData({
       name: "",
-      role: "Stylist",
+      role: "",
       phone: "",
       rating: 5.0,
       status: "Active",
@@ -221,20 +211,25 @@ function StaffFormContent() {
                 </div>
                 {errors.name && <p className="mt-1 text-sm text-rose-500">{errors.name}</p>}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Role <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => updateField('role', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all appearance-none"
-                >
-                  {roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Briefcase size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) => updateField('role', e.target.value)}
+                    placeholder="e.g. Senior Stylist"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all ${
+                      errors.role ? 'border-rose-300 focus:border-rose-500' : 'border-slate-200'
+                    }`}
+                  />
+                </div>
+                {errors.role && <p className="mt-1 text-sm text-rose-500">{errors.role}</p>}
               </div>
 
               <div>

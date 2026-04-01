@@ -261,7 +261,7 @@ export default function BillingDashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 h-full pb-8"
+      className="flex flex-col gap-6 pb-12"
     >
       {/* ── Action Bar ── */}
       <motion.div variants={itemVariants} className="flex justify-between items-center gap-4">
@@ -346,7 +346,7 @@ export default function BillingDashboard() {
       {/* ── Invoices Table ── */}
       <motion.div
         variants={itemVariants}
-        className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-slate-200/40 border border-white/60 flex-1 flex flex-col overflow-hidden"
+        className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col"
       >
         {/* Table Header */}
         <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-gradient-to-r from-white to-slate-50/50 sticky top-0 z-10">
@@ -400,7 +400,7 @@ export default function BillingDashboard() {
         </div>
 
         {/* Table Body */}
-        <div className="flex-1 overflow-auto">
+        <div className="w-full overflow-x-auto">
           {filteredInvoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 flex items-center justify-center mb-6 shadow-inner">
@@ -422,7 +422,7 @@ export default function BillingDashboard() {
               )}
             </div>
           ) : (
-            <table className="w-full text-left text-sm whitespace-nowrap">
+            <table className="w-full text-left text-sm whitespace-nowrap min-w-max">
               <thead className="bg-slate-50/80 border-b border-slate-100 sticky top-0 z-10">
                 <tr>
                   <th className="px-5 py-3 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400">
@@ -442,6 +442,9 @@ export default function BillingDashboard() {
                   </th>
                   <th className="px-5 py-3 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 hidden md:table-cell">
                     Actual Amount
+                  </th>
+                  <th className="px-5 py-3 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-right">
+                    GST (Tax)
                   </th>
                   <th className="px-5 py-3 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-right">
                     Paid Amount
@@ -560,6 +563,13 @@ export default function BillingDashboard() {
                       <td className="px-5 py-1.5 hidden md:table-cell">
                         <span className="text-slate-500 font-bold text-xs tabular-nums">
                           ₹{(inv.totalGross || 0).toLocaleString("en-IN")}
+                        </span>
+                      </td>
+
+                      {/* GST */}
+                      <td className="px-5 py-1.5 text-right">
+                        <span className="text-teal-600 font-bold text-xs tabular-nums">
+                          ₹{(inv.totalTax || 0).toLocaleString("en-IN")}
                         </span>
                       </td>
 

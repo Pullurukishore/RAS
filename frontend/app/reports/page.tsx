@@ -75,13 +75,14 @@ function ReportsContent() {
     let fileName = `${activeReport.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
 
     if (activeReport === "Bill-Wise Sales Report") {
-      headers = ["Date", "Invoice ID", "Customer", "Staff", "Actual Amount", "Paid Amount", "Discount", "Payment Methods"];
+      headers = ["Date", "Invoice ID", "Customer", "Staff", "Actual Base", "GST (Tax)", "Paid Amount", "Discount", "Payment Methods"];
       rows = filteredInvoices.map(inv => [
         new Date(inv.createdAt).toLocaleString(),
         inv.id,
         inv.customer?.name || 'Walkin',
         Array.from(new Set(inv.items?.map((i: any) => i.staff?.name).filter(Boolean))).join(", "),
         inv.totalGross || 0,
+        inv.totalTax || 0,
         inv.total || 0,
         inv.totalDiscount || 0,
         inv.payments?.map((p: any) => p.method).join(", ")
@@ -89,10 +90,11 @@ function ReportsContent() {
     } else if (activeReport === "Day-Wise Sales Report") {
       const daily = filteredInvoices.reduce((acc: any, inv: any) => {
         const date = new Date(inv.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' });
-        if (!acc[date]) acc[date] = { bills: 0, items: 0, actual: 0, discount: 0, cash: 0, upi: 0, card: 0, net: 0, package: 0 };
+        if (!acc[date]) acc[date] = { bills: 0, items: 0, actual: 0, discount: 0, cash: 0, upi: 0, card: 0, net: 0, package: 0, tax: 0 };
         acc[date].bills += 1;
         acc[date].items += inv.items?.length || 0;
         acc[date].actual += inv.totalGross || 0;
+        acc[date].tax += inv.totalTax || 0;
         acc[date].discount += inv.totalDiscount || 0;
         acc[date].net += inv.total || 0;
         
@@ -107,12 +109,13 @@ function ReportsContent() {
         });
         return acc;
       }, {});
-      headers = ["Date", "Bills", "Items", "Actual Amount", "Discount", "Packages", "Cash", "UPI", "Card", "Net Sales"];
+      headers = ["Date", "Bills", "Items", "Actual Amount", "Tax (GST)", "Discount", "Packages", "Cash", "UPI", "Card", "Net Sales"];
       rows = Object.keys(daily).map(date => [
         date,
         daily[date].bills,
         daily[date].items,
         daily[date].actual,
+        daily[date].tax,
         daily[date].discount,
         daily[date].package,
         daily[date].cash,
@@ -256,8 +259,9 @@ function ReportsContent() {
             <th className="p-3">Invoice Id</th>
             <th className="p-3">Customer</th>
             <th className="p-3">Staff</th>
-            <th className="p-3 text-right">Actual Amount</th>
-            <th className="p-3 text-right">Paid Amount</th>
+            <th className="p-3 text-right">Actual Base</th>
+            <th className="p-3 text-right">GST (Tax)</th>
+            <th className="p-3 text-right">Net Paid</th>
             <th className="p-3 text-right">Discount</th>
             <th className="p-3 text-center">Payment</th>
           </tr>
@@ -285,6 +289,9 @@ function ReportsContent() {
               </td>
               <td className="p-3 text-right text-slate-500 font-medium tabular-nums">
                 ₹{inv.totalGross?.toLocaleString() || 0}
+              </td>
+              <td className="p-3 text-right font-bold text-teal-600 tabular-nums">
+                ₹{inv.totalTax?.toLocaleString() || 0}
               </td>
               <td className="p-3 text-right font-black text-slate-800 tabular-nums">
                 ₹{inv.total?.toLocaleString() || 0}
@@ -316,6 +323,7 @@ function ReportsContent() {
       
       acc[date].count += 1;
       acc[date].actual += inv.totalGross || 0;
+      acc[date].tax += inv.totalTax || 0;
       acc[date].discount += inv.totalDiscount || 0;
       acc[date].net += inv.total || 0;
       acc[date].items += inv.items?.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0) || 0;

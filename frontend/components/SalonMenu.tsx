@@ -111,13 +111,14 @@ const SalonMenu = ({ onAdd }: { onAdd: (item: Service) => void }) => {
               <th className="py-4 font-bold text-[11px] uppercase tracking-widest text-[#9EACB9] border-b-2 border-[#eaeef2] w-[450px]">Description</th>
               <th className="py-4 font-bold text-[11px] uppercase tracking-widest text-[#9EACB9] text-right w-28 border-b-2 border-[#eaeef2]">Price</th>
               <th className="py-4 font-bold text-[11px] uppercase tracking-widest text-[#9EACB9] text-right w-28 border-b-2 border-[#eaeef2]">M-Price</th>
+              <th className="py-4 font-bold text-[11px] uppercase tracking-widest text-[#9EACB9] text-right w-20 border-b-2 border-[#eaeef2]">GST</th>
               <th className="py-4 border-b-2 border-[#eaeef2]"></th>
             </tr>
           </thead>
           <tbody className="">
             {filteredData.length === 0 ? (
                <tr>
-                  <td colSpan={5} className="py-24 text-center">
+                  <td colSpan={6} className="py-24 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-2 animate-pulse">
                         <Search className="text-slate-300" size={24} />
@@ -149,6 +150,9 @@ const SalonMenu = ({ onAdd }: { onAdd: (item: Service) => void }) => {
                 </td>
                 <td className="py-5 text-right font-black text-[#1DBA90] font-mono text-[13px] border-b border-[#eaeef2]">
                    <span className="text-[#8cd1c2] font-normal text-xs mr-0.5">₹</span>{item.mPrice}
+                </td>
+                <td className="py-5 text-right font-bold text-[#768798] font-mono text-[11px] border-b border-[#eaeef2]">
+                   {item.gst || 0}%
                 </td>
                 <td className="py-5 border-b border-[#eaeef2]"></td>
               </tr>

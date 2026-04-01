@@ -605,6 +605,7 @@ export default function SalonMenuPage() {
                   )}
                   <th className="px-5 py-4 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 hidden sm:table-cell">Category</th>
                   <th className="px-5 py-4 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-right">Unit Price</th>
+                  <th className="px-5 py-4 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-center">GST %</th>
                   <th className="px-5 py-4 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-center hidden sm:table-cell">M-Price</th>
                   <th className="px-5 py-4 font-bold text-[10px] uppercase tracking-[0.12em] text-slate-400 text-center sticky right-0 bg-slate-50/95 backdrop-blur-sm z-10 border-l border-slate-100">Actions</th>
                 </tr>
@@ -707,6 +708,11 @@ export default function SalonMenuPage() {
                             ₹{item.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                           </span>
                         </td>
+                        <td className="px-5 py-4 text-center">
+                          <span className="font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-lg text-[10px] border border-teal-100 uppercase tracking-widest">
+                            {item.gst}%
+                          </span>
+                        </td>
                         <td className="px-5 py-4 text-center hidden sm:table-cell">
                           {item.mPrice ? (
                             <span className="font-bold text-teal-600 text-sm tabular-nums">
@@ -800,6 +806,9 @@ export default function SalonMenuPage() {
                               {item.gender}
                             </span>
                           )}
+                          <span className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-600 border border-teal-100 shadow-sm">
+                            GST {item.gst}%
+                          </span>
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100">

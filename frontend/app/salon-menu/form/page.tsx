@@ -61,12 +61,9 @@ function SalonMenuFormContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [formData, setFormData] = useState<Partial<MenuItem>>({
-    code: "",
-    description: "",
-    price: undefined,
-    mPrice: undefined,
     gender: "Male" as "Male" | "Female" | "Unisex",
     category: "",
+    gst: 0,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -135,6 +132,8 @@ function SalonMenuFormContent() {
       } else if (activeTab === 'product') {
         payload.category = dataToSend.category;
       }
+      
+      payload.gst = Number(formData.gst) || 0;
 
       const res = await fetch(url, {
         method,
@@ -164,6 +163,7 @@ function SalonMenuFormContent() {
       mPrice: undefined,
       gender: "Male",
       category: "",
+      gst: 0,
     });
     setErrors({});
   };
@@ -361,6 +361,47 @@ function SalonMenuFormContent() {
                 <p className="mt-1.5 text-[10px] text-slate-400 font-medium italic">Mandatory special rate for members</p>
               </div>
             </div>
+          </div>
+
+          {/* GST */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-5">Tax (GST)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">GST Percentage (%)</label>
+                <div className="flex gap-1.5">
+                  {[0, 5, 12, 18, 28].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => updateField('gst', val)}
+                      className={`flex-1 py-2.5 rounded-lg text-[11px] font-black transition-all ${
+                        formData.gst === val
+                          ? 'bg-emerald-600 text-white shadow-md scale-105'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/50'
+                      }`}
+                    >
+                      {val}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-end">
+                <div className="flex-1 relative">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.gst ?? 0}
+                    onChange={(e) => updateField('gst', Number(e.target.value))}
+                    placeholder="Custom %"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[10px] text-slate-400 font-medium italic">GST will be applied to the base price during billing.</p>
           </div>
 
           {/* Actions */}

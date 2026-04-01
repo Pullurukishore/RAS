@@ -3,6 +3,7 @@ export interface BillItem {
     description: string;
     staffId: string;
     staffName: string;
+    staffRole?: string;
     price: number;
     qty: number;
     total: number;
@@ -13,5 +14,7 @@ export interface BillItem {
     isMemberPrice?: boolean;
     regularPrice?: number;
     mPrice?: number;
+    gst?: number;
+    taxAmount?: number;
 }
 

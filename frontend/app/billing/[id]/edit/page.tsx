@@ -68,12 +68,15 @@ export default function EditBillingPage() {
                 `Legacy Item`,
               staffId: item.staffId,
               staffName: item.staff?.name || "Unknown Staff",
+              staffRole: item.staff?.role || "",
               price: item.price,
               qty: item.quantity,
               total: item.total,
               serviceId: item.serviceId,
               productId: item.productId,
               packageId: item.packageId,
+              gst: item.gst || 0,
+              taxAmount: item.taxAmount || 0,
               regularPrice: item.service?.price || item.product?.price || item.package?.price || item.price,
               mPrice: item.service?.mPrice || item.product?.mPrice || item.package?.mPrice || undefined,
               isMemberPrice: item.isMemberPrice || false
@@ -113,6 +116,8 @@ export default function EditBillingPage() {
       serviceId: (menuItem.type === "Service" || !menuItem.type) ? menuItem.id : undefined,
       productId: menuItem.type === "Product" ? menuItem.id : undefined,
       packageId: menuItem.type === "Package" ? menuItem.id : undefined,
+      gst: menuItem.gst || 0,
+      taxAmount: itemPrice * ((menuItem.gst || 0) / 100),
     };
     setItems((prev) => [...prev, newItem]);
     setIsMenuOpen(false);
@@ -126,11 +131,13 @@ export default function EditBillingPage() {
         const hasMemberPrice = item.mPrice !== undefined && item.mPrice !== null;
         const useMemberPrice = isMember && hasMemberPrice;
         const newPrice = useMemberPrice ? (item.mPrice ?? item.regularPrice ?? item.price) : (item.regularPrice ?? item.price);
+        const newTaxAmount = newPrice * (item.qty || 1) * ((item.gst || 0) / 100);
         
         return {
           ...item,
           price: newPrice,
-          total: newPrice * (item.qty || 1),
+          taxAmount: newTaxAmount,
+          total: (newPrice * (item.qty || 1)) + newTaxAmount,
           isMemberPrice: useMemberPrice
         };
       })
@@ -141,7 +148,7 @@ export default function EditBillingPage() {
     const selectedStaff = staff.find((s) => s.id === staffId);
     setItems((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, staffId, staffName: selectedStaff?.name || "" } : item
+        item.id === itemId ? { ...item, staffId, staffName: selectedStaff?.name || "", staffRole: selectedStaff?.role || "" } : item
       )
     );
   }, [staff]);
@@ -152,6 +159,7 @@ export default function EditBillingPage() {
 
   /* ─── Totals ─── */
   const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.price * item.qty), 0), [items]);
+  const totalTax = useMemo(() => items.reduce((acc, item) => acc + (item.taxAmount || 0), 0), [items]);
   const totalDiscount = useMemo(() => {
     let calcDisc = 0;
     const val = Number(discountInput) || 0;
@@ -163,7 +171,7 @@ export default function EditBillingPage() {
     calcDisc = Math.min(calcDisc, subTotal);
     return Math.max(0, calcDisc);
   }, [subTotal, discountInput, discountType]);
-  const total = useMemo(() => Math.max(0, subTotal - totalDiscount), [subTotal, totalDiscount]);
+  const total = useMemo(() => Math.max(0, subTotal + totalTax - totalDiscount), [subTotal, totalTax, totalDiscount]);
 
   /* ─── Submit ─── */
   const handleCompletePayment = async () => {
@@ -179,6 +187,8 @@ export default function EditBillingPage() {
         packageId: i.packageId,
         staffId: i.staffId,
         price: i.price,
+        gst: i.gst,
+        taxAmount: i.taxAmount,
       })),
       totalDiscount,
       payments: [{ method: paymentMethod, amount: total }],
@@ -394,8 +404,12 @@ export default function EditBillingPage() {
             {/* Totals */}
             <div className="space-y-3 mb-6 relative z-10 font-mono text-sm pt-4 border-t border-white/10">
               <div className="flex justify-between items-center text-slate-400">
-                <span>Subtotal</span>
+                <span>Subtotal (Base)</span>
                 <span className="text-white font-bold tabular-nums">₹{subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-emerald-400">
+                <span>GST Allocation</span>
+                <span className="font-bold tabular-nums">₹{totalTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between items-start text-rose-400/90">
                 <span>Discount</span>
