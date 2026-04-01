@@ -2,6 +2,12 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 dotenv.config();
 
@@ -1157,7 +1163,97 @@ app.delete('/api/appointments/:id', async (req: Request, res: Response) => {
     }
 });
 
+
 // Settings
+
+// Full Database Backup Endpoint
+app.get('/api/settings/backup', async (req: Request, res: Response) => {
+    try {
+        const dbUrl = process.env.DATABASE_URL || '';
+        if (!dbUrl) throw new Error('DATABASE_URL is not set');
+
+        // Parse DB URL to get username, password, host, port, and db name
+        const urlMatch = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/);
+        if (!urlMatch) throw new Error('Could not parse DATABASE_URL');
+
+        const [_, user, password, host, port, dbName] = urlMatch;
+
+        // Try to find pg_dump.exe in common locations or from where it's hopefully in PATH
+        // Default to just 'pg_dump'
+        let pgDumpPath = 'pg_dump';
+        
+        // On Windows, common installations put it in Program Files
+        const possiblePaths = [
+            'C:\\Program Files\\PostgreSQL\\17\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\16\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\15\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\14\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\13\\bin\\pg_dump.exe'
+        ];
+
+        for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+                pgDumpPath = `"${p}"`;
+                break;
+            }
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `backup-${dbName}-${timestamp}.sql`;
+        const tempFilePath = path.join(process.cwd(), filename);
+
+        // Env var for pg_dump to avoid password prompt
+        process.env.PGPASSWORD = decodeURIComponent(password);
+        
+        const command = `${pgDumpPath} -h ${host} -p ${port} -U ${user} -d ${dbName} -f "${tempFilePath}"`;
+        
+        console.log(`Running backup: ${command.replace(password, '****')}`);
+        
+        await execPromise(command);
+        
+        // Stream the file for download
+        res.download(tempFilePath, filename, (err) => {
+            // Clean up temporary file after sending
+            if (fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+            }
+        });
+        
+    } catch (error: any) {
+        console.error('Backup Error:', error);
+        res.status(500).json({ error: error.message || 'Backup failed' });
+    }
+});
+
+// JSON Backup Fallback (Portable backup of just data)
+app.get('/api/settings/backup/json', async (req: Request, res: Response) => {
+    try {
+        const data: any = {};
+        
+        // Extract data model by model
+        data.staff = await prisma.staff.findMany();
+        data.customer = await prisma.customer.findMany();
+        data.service = await prisma.service.findMany();
+        data.product = await prisma.product.findMany();
+        data.package = await prisma.package.findMany();
+        data.membershipPlan = await prisma.membershipPlan.findMany();
+        data.invoice = await prisma.invoice.findMany({ include: { items: true, payments: true } });
+        data.appointment = await prisma.appointment.findMany();
+        data.dailyClosing = await prisma.dailyClosing.findMany();
+        data.setting = await prisma.setting.findMany();
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `data-export-${timestamp}.json`;
+        
+        res.setHeader('Content-disposition', `attachment; filename=${filename}`);
+        res.setHeader('Content-type', 'application/json');
+        res.write(JSON.stringify(data, null, 2));
+        res.end();
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/settings/:key', async (req: Request, res: Response) => {
     try {
         const key = req.params.key as string;
@@ -1205,6 +1301,7 @@ app.put('/api/settings/:key', async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
